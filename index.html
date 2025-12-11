@@ -951,32 +951,38 @@
         // --- 修复版 Resize 逻辑 ---
         let resizeTimeout;
         const handleResize = () => { 
+            // 1. 立即暂停体感，防止旋转过程中的画面乱跳
+            if (viewer && isGyroEnabled) {
+                try { viewer.stopOrientation(); } catch(e) {}
+            }
+
             // 防抖：等待 UI/地址栏动画结束
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
                 if(viewer) {
-                    // 1. 更新尺寸
+                    // 2. 更新尺寸
                     viewer.resize();
                     
-                    // 2. 根据横竖屏修正视场角 (解决画面异常/畸变)
+                    // 3. 根据横竖屏修正视场角 (解决画面异常/畸变)
                     const newHfov = getOptimalHfov();
                     viewer.setHfov(newHfov);
 
-                    // 3. 关键修复：如果开启了体感，旋转后需要重启体感以修正坐标轴 (解决体感错乱)
+                    // 4. 重启体感 (关键：给予足够的缓冲时间让浏览器更新 orientation 数据)
                     if (isGyroEnabled) {
-                        // 临时关闭自动旋转以避免冲突
+                         // 临时关闭自动旋转以避免冲突
                         viewer.stopAutoRotate();
-                        // 重启体感模块
-                        viewer.stopOrientation();
+                        
                         setTimeout(() => {
-                            viewer.startOrientation();
-                        }, 50); // 微小延迟确保坐标系重置
+                            try { viewer.startOrientation(); } catch(e) {}
+                        }, 100); 
                     }
                 }
                 checkOrientation(); 
-            }, 200); // 200ms 延迟等待浏览器布局稳定
+            }, 300); // 延迟调整为 300ms，覆盖大部分手机旋转动画时长
         };
+        
         window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize); // 显式监听旋转
 
         let lastStateWasPortrait = false;
         function checkOrientation() {
