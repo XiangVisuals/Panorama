@@ -1,496 +1,1013 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, UploadCloud, Video, Clock, AlignLeft, Mic, ImagePlus, Download, Import, Check, Trash2, Edit3, Save, X } from 'lucide-react';
-
-// 初始细化脚本数据（23个精准分镜）
-const INITIAL_SHOTS = [
-  {
-    id: 'shot-1',
-    time: '00:00 - 00:05',
-    scene: '城市取景',
-    shotType: '远景 -> 推镜头',
-    visual: '清晨大连城市空镜。从星海湾或滨海路的远景缓缓推进，晨曦柔和，海面波光粼粼，车流与城市苏醒的画面温柔过渡。',
-    subtitle: '',
-    vo: '山海相拥，匠心扎根滨城。',
-    image: null
-  },
-  {
-    id: 'shot-2',
-    time: '00:05 - 00:10',
-    scene: '品牌亮相',
-    shotType: '全景 -> 摇镜头',
-    visual: '视线平滑过渡至繁华的大连恒隆广场外立面，镜头缓缓上移，定格在商场主楼在晨光中的高级质感。',
-    subtitle: '',
-    vo: '在大连，藏着一份坚守十年的手工温柔，',
-    image: null
-  },
-  {
-    id: 'shot-3',
-    time: '00:10 - 00:15',
-    scene: '品牌亮相',
-    shotType: '中景 -> 特写',
-    visual: '画面推拉至 EIKI 门店精致的门头特写。门店内透出柔和通透的暖光，招牌细节干净、高级。',
-    subtitle: 'EIKI in TOKYO・大连恒隆 3 层 331',
-    vo: '它叫 EIKI。',
-    image: null
-  },
-  {
-    id: 'shot-4',
-    time: '00:16 - 00:22',
-    scene: '十年沉淀',
-    shotType: '全景 -> 慢推',
-    visual: '镜头切入门店内部，暖调的室内光影（原木与皮革色调）铺开。主理人静坐工作台前，给一个安静温柔的侧影。',
-    subtitle: '',
-    vo: '快节奏的时代，万物追求速成，而我们选择慢下来。',
-    image: null
-  },
-  {
-    id: 'shot-5',
-    time: '00:22 - 00:28',
-    scene: '十年沉淀',
-    shotType: '特写 -> 平移',
-    visual: '镜头缓缓扫过复古质感的十年老店成长照片墙，随后平移至挂满岁月痕迹的手工工具墙，展现时光积淀。',
-    subtitle: '十年如一・坚守手工温度',
-    vo: '十年深耕手工皮具领域，摒弃流水线的冰冷复制，',
-    image: null
-  },
-  {
-    id: 'shot-6',
-    time: '00:28 - 00:40',
-    scene: '初心坚守',
-    shotType: '特写 -> 升格(慢动作)',
-    visual: '主理人抬手轻抚工作台上的皮革面料，指尖慢慢摩挲皮面纹理。动作极度轻柔，微距捕捉指尖与皮革的互动。',
-    subtitle: '',
-    vo: '始终相信，双手的温度，才能赋予皮革独一无二的生命力。十年初心不改，只为做好每一件手作皮具。',
-    image: null
-  },
-  {
-    id: 'shot-7',
-    time: '00:41 - 00:48',
-    scene: '甄选皮料',
-    shotType: '微距特写',
-    visual: '极近距离拍摄各类进口真皮面料。清晰展现皮料自然生长的毛孔质感、细微的天然纹理。',
-    subtitle: '',
-    vo: '好的皮具，始于优质原料。EIKI 坚持严选进口高端真皮面料，',
-    image: null
-  },
-  {
-    id: 'shot-8',
-    time: '00:48 - 00:55',
-    scene: '甄选皮料',
-    shotType: '中近景',
-    visual: '主理人双手拿起两块不同质感的皮料进行对比，眼神专注。手指轻轻折叠、按压皮料，展示其极佳的韧性与回弹。',
-    subtitle: '进口皮料・一线高奢同源',
-    vo: '与国际一线高奢品牌同源工厂直供皮料。每一寸皮革都经过层层筛选，无劣质拼接、无合成仿皮，',
-    image: null
-  },
-  {
-    id: 'shot-9',
-    time: '00:56 - 01:15',
-    scene: '高奢质感',
-    shotType: '特写 -> 光影流动',
-    visual: '午后的阳光透过橱窗，正好洒在桌面的皮料上。镜头随着光影移动，凸显皮料表面那一层温润、高级的自然油脂光泽。',
-    subtitle: '',
-    vo: '天然细腻的纹理、温润扎实的质感，经得起近距离细看、经得起岁月打磨，不负每一份挑剔的偏爱。',
-    image: null
-  },
-  {
-    id: 'shot-10',
-    time: '01:16 - 01:22',
-    scene: '全程手作',
-    shotType: '特写',
-    visual: '沉浸式手工起幅。裁皮刀划过皮面的特写，伴随真实的“唰”裁切ASMR音效。刀口利落，线条工整。',
-    subtitle: '',
-    vo: '真正的手作，从不含敷衍与将就。从原料裁切、精准打孔，',
-    image: null
-  },
-  {
-    id: 'shot-11',
-    time: '01:22 - 01:28',
-    scene: '全程手作',
-    shotType: '特写',
-    visual: '法斩精准定位，木槌敲击（清脆实音）。细致打孔，孔距均匀规整，展现强迫症般的舒适感。',
-    subtitle: '主理人全手工・一针一线皆匠心',
-    vo: '到细密缝线、边角打磨、精细抛光，每一道工序，均由主理人亲自上手、全程把控。',
-    image: null
-  },
-  {
-    id: 'shot-12',
-    time: '01:28 - 01:36',
-    scene: '一针匠心',
-    shotType: '特写 -> 升格(慢动作)',
-    visual: '双针马鞍缝法特写。蜡线在孔洞中穿梭拉紧，主理人手部青筋微凸，充满手工力量感与节奏感。',
-    subtitle: '',
-    vo: '我们拒绝机器量产、拒绝流水线同质化，不追求速度，只苛求细节。',
-    image: null
-  },
-  {
-    id: 'shot-13',
-    time: '01:36 - 01:45',
-    scene: '一针匠心',
-    shotType: '特写群像 (快切过渡)',
-    visual: '打磨棒快速修边、床面处理剂涂抹、安装黄铜五金件的清脆咔哒声。多个精细手作动作的视觉节奏混剪。',
-    subtitle: '',
-    vo: '千次穿引，万次打磨，一针一线皆是诚意，一器一物皆藏匠心，让每一件作品，都拥有专属的温度与灵魂。',
-    image: null
-  },
-  {
-    id: 'shot-14',
-    time: '01:46 - 01:52',
-    scene: '温暖陪伴',
-    shotType: '全景 -> 摇镜头',
-    visual: '镜头转至成品陈列区。暖光灯下，各色包包、卡包、表带整齐排列。光影扫过，散发着皮革特有的高级气场。',
-    subtitle: '',
-    vo: '机器制造的是商品，手工雕琢的是陪伴。',
-    image: null
-  },
-  {
-    id: 'shot-15',
-    time: '01:52 - 02:00',
-    scene: '温暖陪伴',
-    shotType: '中近景',
-    visual: '顾客（手部特写为主）在店挑选，轻轻抚摸一只焦糖色马鞍包的皮面，感受真实的触感。',
-    subtitle: '一件皮具・一生陪伴',
-    vo: '一件优质的手工皮具，不会随潮流更迭而褪色，反而会在时光的沉淀中，愈发温润有质感。',
-    image: null
-  },
-  {
-    id: 'shot-16',
-    time: '02:00 - 02:15',
-    scene: '一物传世',
-    shotType: '过肩镜头 -> 慢推',
-    visual: '主理人微笑着将定制好的成品装入精美防尘袋递给顾客。顾客接过，两人相视一笑。定格这治愈的交付瞬间。',
-    subtitle: '',
-    vo: '它陪伴你奔赴日常、见证生活点滴，历经岁月摩挲，慢慢沉淀出独属于你的使用痕迹，成为经久耐用、岁岁相伴的生活挚友。',
-    image: null
-  },
-  {
-    id: 'shot-17',
-    time: '02:16 - 02:22',
-    scene: '品牌收官',
-    shotType: '全景 -> 缓慢后拉',
-    visual: '门店全景慢镜头拉远，展现整个店铺如同一个充满故事的时光盒子，整体高级氛围感拉满。',
-    subtitle: '',
-    vo: '以时光淬炼匠心，以温柔奔赴热爱。十年手作，不负时光，不负知己。',
-    image: null
-  },
-  {
-    id: 'shot-18',
-    time: '02:22 - 02:30',
-    scene: '坐标定格',
-    shotType: '特写 -> 定格',
-    visual: '画面渐暗，最后亮起一道光，聚焦打在背景墙 EIKI 的立体 LOGO 上。随后出现门店地址与品牌标语，干净利落。',
-    subtitle: 'EIKI in TOKYO｜恒隆 3 层 331｜十年手作\n以匠心，待知音',
-    vo: 'EIKI，在大连恒隆，静待每一位热爱质感生活的你。',
-    image: null
-  }
-];
-
-export default function App() {
-  const [shots, setShots] = useState(INITIAL_SHOTS);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [importText, setImportText] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const fileInputRefs = useRef({});
-
-  // 处理图片上传
-  const handleImageUpload = (id, event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setShots(shots.map(shot => shot.id === id ? { ...shot, image: reader.result } : shot));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // 移除图片
-  const removeImage = (id) => {
-    setShots(shots.map(shot => shot.id === id ? { ...shot, image: null } : shot));
-  };
-
-  // 触发隐藏的文件上传输入框
-  const triggerUpload = (id) => {
-    if (fileInputRefs.current[id]) {
-      fileInputRefs.current[id].click();
-    }
-  };
-
-  // 处理内容编辑
-  const handleFieldChange = (id, field, value) => {
-    setShots(shots.map(shot => shot.id === id ? { ...shot, [field]: value } : shot));
-  };
-
-  // 批量导出JSON
-  const handleExport = () => {
-    const dataStr = JSON.stringify(shots, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = 'eiki_storyboard_script.json';
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 关键修改：添加 minimal-ui 和 viewport-fit=cover 以适配刘海屏和全屏模式 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
     
-    let linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
+    <!-- 关键修改：iOS PWA 全屏支持 (添加到主屏幕后生效) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- 标题将作为主屏幕图标下的名称 -->
+    <meta name="apple-mobile-web-app-title" content="全景VR">
+    
+    <title>沉浸式全景体验</title>
+    
+    <!-- 性能优化：预连接 CDN -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    
+    <!-- 引入 Pannellum 库 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js" defer></script>
+    <script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "uhsvw44mor");
+    </script>
+    <style>
+        :root {
+            --text-color: #ffffff;
+            --error-color: #ff4757;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --primary-color: #00f2fe;
+        }
 
-  // 批量导入JSON
-  const handleImport = () => {
-    try {
-      const parsed = JSON.parse(importText);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
-        setShots(parsed);
-        setIsModalOpen(false);
-        setImportText('');
-        alert('导入成功！');
-      } else {
-        alert('数据格式不正确，请确保是有效的 JSON 数组。');
-      }
-    } catch (e) {
-      alert('解析失败，请检查 JSON 格式是否正确。');
-    }
-  };
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            /* 关键修改：使用 dvh (Dynamic Viewport Height) 适配移动端动态地址栏 */
+            height: 100vh;
+            height: 100dvh; 
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-  return (
-    <div className="min-h-screen bg-[#F9F8F6] text-[#3D3835] font-sans selection:bg-[#D4C3B3] selection:text-white pb-20">
-      {/* 顶部导航 */}
-      <header className="sticky top-0 z-50 bg-[#F9F8F6]/90 backdrop-blur-md border-b border-[#E8E4DF] px-6 py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#3D3835] text-[#F9F8F6] rounded-md flex items-center justify-center font-serif text-xl font-bold tracking-widest shadow-md">
-              E
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-wide text-[#3D3835]">EIKI 品牌视频分镜管理</h1>
-              <p className="text-xs text-[#8C837A] tracking-wider mt-0.5">大连恒隆 3 分钟治愈系匠心短片</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#D4C3B3] text-[#5C544D] rounded-md text-sm hover:bg-[#F3EFEA] transition-colors shadow-sm"
-            >
-              <Import size={16} />
-              <span>批量导入</span>
-            </button>
-            <button 
-              onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 bg-[#8C7A6B] text-white rounded-md text-sm hover:bg-[#736457] transition-colors shadow-md"
-            >
-              <Download size={16} />
-              <span>导出脚本</span>
-            </button>
-          </div>
+        /* 主容器 */
+        #main-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh; /* 确保容器填满可见区域 */
+        }
+
+        /* 全景容器 */
+        #panorama {
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* --- 启动页 (Landing Page) --- */
+        #landing-page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: var(--text-color);
+            transition: opacity 0.6s ease;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .landing-bg {
+            position: absolute;
+            top: -5%;
+            left: -5%;
+            width: 110%;
+            height: 110%;
+            background-color: #111; 
+            background-size: cover;
+            background-position: center;
+            filter: blur(40px) brightness(0.6); 
+            z-index: -1;
+            transition: opacity 1s ease-in-out; 
+        }
+
+        /* --- 核心卡片 --- */
+        .landing-content {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px) saturate(200%) brightness(1.2);
+            -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.2);
+            padding: 30px;
+            border-radius: 44px;
+            box-shadow: 
+                0 30px 60px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.7),
+                inset 0 -1px 0 rgba(255,255,255,0.2),
+                0 0 0 1px rgba(255,255,255,0.1);
+            border: 1px solid var(--glass-border);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            
+            max-height: 85vh; 
+            overflow-y: hidden; 
+            
+            position: relative;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: contentFadeIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            animation-delay: 0.2s;
+        }
+
+        /* 移动端横向布局容器：确保横排显示 */
+        .landing-footer-row {
+            display: flex;
+            flex-direction: row; /* 强制横向排列 */
+            align-items: center;
+            width: 100%;
+            gap: 15px;
+            margin-top: 20px;
+            min-height: 0;
+        }
+        
+        @media (max-width: 600px) {
+            .landing-content {
+                padding: 24px 20px;
+                border-radius: 32px;
+                width: 95%; 
+            }
+            .landing-footer-row {
+                gap: 10px;
+                margin-top: 15px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            p.subtitle {
+                font-size: 12px;
+                margin-bottom: 5px; 
+            }
+        }
+
+        @keyframes contentFadeIn {
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 2px 15px rgba(255,255,255,0.4);
+            flex-shrink: 0;
+        }
+
+        p.subtitle {
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 20px;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        /* 场景画廊（左侧） */
+        .landing-gallery {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            flex: 1; /* 占据剩余空间 */
+            width: 0; 
+            padding: 5px 2px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .landing-gallery::-webkit-scrollbar { display: none; }
+
+        .thumb-item {
+            flex: 0 0 60px;
+            height: 60px;
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .thumb-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumb-item.active {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* 启动按钮（右侧） */
+        .start-btn {
+            position: relative;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0 24px;
+            height: 60px; /* 高度与列表一致 */
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.6);
+            flex-shrink: 0; /* 防止按钮被压缩，确保在右侧 */
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .start-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* --- iOS PWA 引导层 --- */
+        #ios-install-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000; /* 最高层级 */
+            display: none; /* 默认隐藏 */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            padding: 30px;
+            box-sizing: border-box;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        #ios-install-modal.show {
+            display: flex;
+        }
+
+        .install-icon {
+            width: 60px;
+            height: 60px;
+            background: #222;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .install-steps {
+            text-align: left;
+            margin-top: 30px;
+            font-size: 15px;
+            line-height: 1.8;
+            color: rgba(255,255,255,0.85);
+            background: rgba(255,255,255,0.08);
+            padding: 24px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 320px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .step-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .step-row:last-child { margin-bottom: 0; }
+
+        .share-icon-svg {
+            display: inline-block;
+            vertical-align: middle;
+            margin: 0 6px;
+            width: 22px;
+            height: 22px;
+            color: #007AFF; /* iOS Blue */
+        }
+        
+        .arrow-bounce {
+            position: absolute;
+            bottom: 30px;
+            animation: bounce 2s infinite;
+            opacity: 0.8;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-10px);}
+            60% {transform: translateY(-5px);}
+        }
+
+        /* --- 横屏提示遮罩层 --- */
+        #orientation-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            display: flex; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+            opacity: 0; 
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        #orientation-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* 手机旋转动画 */
+        .phone-rotate-icon {
+            width: 60px;
+            height: 100px;
+            border: 4px solid rgba(255,255,255,0.8);
+            border-radius: 10px;
+            margin-bottom: 30px;
+            position: relative;
+            animation: rotatePhone 2s infinite ease-in-out;
+        }
+        
+        .phone-rotate-icon::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20%;
+            height: 4px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 2px;
+        }
+
+        .rotate-text {
+            font-size: 16px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+            letter-spacing: 1px;
+            padding: 0 20px;
+        }
+
+        @keyframes rotatePhone {
+            0% { transform: rotate(0deg); opacity: 1; }
+            30% { transform: rotate(90deg); opacity: 1; }
+            70% { transform: rotate(90deg); opacity: 1; }
+            100% { transform: rotate(0deg); opacity: 1; }
+        }
+
+        /* --- HUD (底部悬浮栏) --- */
+        #hud-controls {
+            position: absolute;
+            bottom: 40px;
+            /* 关键修改：适配 iPhone 底部 Home Indicator 安全区 */
+            bottom: max(40px, env(safe-area-inset-bottom) + 20px);
+            left: 50%;
+            transform: translateX(-50%) translateY(200%);
+            display: flex;
+            gap: 20px;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(30px) saturate(220%) brightness(1.1);
+            -webkit-backdrop-filter: blur(30px) saturate(220%) brightness(1.1);
+            border-radius: 60px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.5);
+            z-index: 20;
+            transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        
+        #hud-controls.idle { opacity: 0.3; }
+        #hud-controls:hover, #hud-controls:active { opacity: 1 !important; }
+
+        .hud-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1px solid transparent;
+            color: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .hud-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .hud-btn:hover, .hud-btn.active {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.2);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        /* --- 场景选择面板 --- */
+        #gallery-panel {
+            position: absolute;
+            bottom: 110px;
+            bottom: max(110px, env(safe-area-inset-bottom) + 90px);
+            left: 50%;
+            transform: translateX(-50%) scale(0.9);
+            width: 300px;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+            background: rgba(30, 30, 30, 0.4);
+            backdrop-filter: blur(35px) saturate(180%);
+            -webkit-backdrop-filter: blur(35px) saturate(180%);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            z-index: 15;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #gallery-panel.open {
+            max-height: 400px;
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+            pointer-events: auto;
+            padding: 10px;
+        }
+
+        .gallery-header {
+            padding: 10px 15px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.6);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .gallery-list {
+            overflow-y: auto;
+            max-height: 300px;
+        }
+        .gallery-list::-webkit-scrollbar { width: 4px; }
+        .gallery-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+        .scene-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+        }
+        .scene-item.active { background: rgba(255,255,255,0.2); }
+        .scene-name { font-size: 14px; color: #fff; margin-left: 10px; }
+        .scene-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.3); }
+        .scene-item.active .scene-dot { background: var(--primary-color); box-shadow: 0 0 8px var(--primary-color); }
+
+        /* 全局 Loading */
+        .loader-container {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 50;
+        }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s infinite linear;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        #toast-msg {
+            position: absolute;
+            top: 24px;
+            top: max(24px, env(safe-area-inset-top) + 10px); /* 适配刘海屏 */
+            left: 50%;
+            transform: translateX(-50%) translateY(-150px);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(30px);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 200;
+            transition: transform 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        #toast-msg.show { transform: translateX(-50%) translateY(0); }
+
+    </style>
+</head>
+<body>
+
+    <!-- iOS 强制全屏引导层 -->
+    <div id="ios-install-modal">
+        <div class="install-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>
         </div>
-      </header>
-
-      {/* 主体内容 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-8">
-        <div className="mb-8 bg-white p-6 rounded-xl border border-[#E8E4DF] shadow-sm flex flex-col md:flex-row gap-6 items-center">
-           <div className="flex-1">
-             <h2 className="text-lg font-bold mb-2 flex items-center gap-2"><Video size={20} className="text-[#8C7A6B]"/> 整体风格与调性</h2>
-             <p className="text-sm text-[#5C544D] leading-relaxed">
-               <span className="font-semibold text-[#3D3835]">风格：</span>治愈、高级、温暖、质感，节奏舒缓，适配手工匠心氛围感。<br/>
-               <span className="font-semibold text-[#3D3835]">音乐：</span>轻柔小众纯音乐（推荐吉他、大提琴或低音钢琴），全程低音量铺垫。<br/>
-               <span className="font-semibold text-[#3D3835]">色彩：</span>大地色系（琥珀色、原木色、焦糖色）、暖光为主。
-             </p>
-           </div>
-           <div className="bg-[#F9F8F6] p-4 rounded-lg border border-[#E8E4DF] min-w-[200px] text-center">
-             <div className="text-3xl font-serif text-[#8C7A6B] mb-1">{shots.length}</div>
-             <div className="text-xs text-[#8C837A] uppercase tracking-widest">Total Shots</div>
-           </div>
+        <h2 style="font-size: 20px; margin: 0 0 10px 0; font-weight: 600;">需添加到主屏幕</h2>
+        <p style="font-size: 14px; opacity: 0.7; text-align: center; margin: 0;">为获得最佳沉浸式体验，<br>请将本应用安装到您的手机</p>
+        
+        <div class="install-steps">
+            <div class="step-row">
+                1. 点击浏览器底部的 <svg class="share-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> 分享按钮
+            </div>
+            <div class="step-row">
+                2. 向下滑动菜单
+            </div>
+            <div class="step-row">
+                3. 选择 "添加到主屏幕"
+            </div>
         </div>
+        
+        <!-- 箭头指向底部 -->
+        <div class="arrow-bounce">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        </div>
+    </div>
 
-        {/* 分镜网格 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {shots.map((shot, index) => (
-            <div key={shot.id} className="bg-white rounded-xl border border-[#E8E4DF] shadow-sm overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
-              
-              {/* 卡片头部 */}
-              <div className="flex justify-between items-center px-5 py-3 border-b border-[#F3EFEA] bg-[#FAFAF9]">
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-[#E8E4DF] text-[#5C544D] flex items-center justify-center text-sm font-bold font-serif">
-                    {index + 1}
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-[#3D3835]">{shot.scene}</span>
-                    <span className="text-xs text-[#8C837A] flex items-center gap-1"><Clock size={12}/> {shot.time}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-1 bg-[#F3EFEA] text-[#736457] rounded-md border border-[#E8E4DF]">
-                    {shot.shotType}
-                  </span>
-                  <button 
-                    onClick={() => setEditingId(editingId === shot.id ? null : shot.id)}
-                    className="p-1.5 text-[#8C837A] hover:text-[#3D3835] hover:bg-[#E8E4DF] rounded-md transition-colors"
-                  >
-                    {editingId === shot.id ? <Check size={16} /> : <Edit3 size={16} />}
-                  </button>
-                </div>
-              </div>
+    <!-- 横屏提示层 -->
+    <div id="orientation-overlay">
+        <div class="phone-rotate-icon"></div>
+        <div class="rotate-text">建议横屏以获得最佳体验</div>
+    </div>
 
-              {/* 卡片内容区 */}
-              <div className="flex flex-col sm:flex-row flex-1 p-5 gap-5">
+    <!-- 主容器 -->
+    <div id="main-container">
+
+        <!-- 启动页 (Landing Page) -->
+        <div id="landing-page">
+            <div class="landing-bg" id="landing-bg"></div>
+            <div class="landing-content">
+                <h1>VR 沉浸空间</h1>
+                <p class="subtitle">选择场景并开始探索</p>
                 
-                {/* 左侧：图片上传/预览区 */}
-                <div className="sm:w-2/5 flex-shrink-0">
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
-                    ref={el => fileInputRefs.current[shot.id] = el}
-                    onChange={(e) => handleImageUpload(shot.id, e)}
-                  />
-                  
-                  {shot.image ? (
-                    <div className="relative w-full aspect-video sm:aspect-square bg-[#F9F8F6] rounded-lg overflow-hidden border border-[#E8E4DF] group/image">
-                      <img src={shot.image} alt="Shot Preview" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
-                        <button 
-                          onClick={() => triggerUpload(shot.id)}
-                          className="p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-colors"
-                          title="更换图片"
-                        >
-                          <ImagePlus size={18} />
-                        </button>
-                        <button 
-                          onClick={() => removeImage(shot.id)}
-                          className="p-2 bg-red-500/60 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-colors"
-                          title="删除图片"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+                <!-- 底部横向布局 (场景列表 + 确认按钮) -->
+                <div class="landing-footer-row">
+                    <!-- 左侧：场景列表 -->
+                    <div class="landing-gallery" id="landing-gallery">
+                        <!-- JS 生成 -->
                     </div>
-                  ) : (
-                    <div 
-                      onClick={() => triggerUpload(shot.id)}
-                      className="w-full aspect-video sm:aspect-square bg-[#FAFAF9] border-2 border-dashed border-[#D4C3B3] rounded-lg flex flex-col items-center justify-center text-[#8C837A] hover:bg-[#F3EFEA] hover:border-[#8C7A6B] hover:text-[#5C544D] cursor-pointer transition-all gap-2 p-4 text-center group/upload"
-                    >
-                      <div className="p-3 bg-white rounded-full shadow-sm group-hover/upload:scale-110 transition-transform">
-                        <Camera size={24} className="text-[#8C7A6B]" />
-                      </div>
-                      <span className="text-sm font-medium">点击上传参考图</span>
-                      <span className="text-xs text-[#A39A92]">JPG / PNG</span>
-                    </div>
-                  )}
+
+                    <!-- 右侧：确认按钮 -->
+                    <button class="start-btn" id="startBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z"/> 
+                        </svg>
+                        进入
+                    </button>
                 </div>
-
-                {/* 右侧：文本描述区 */}
-                <div className="flex-1 flex flex-col gap-4 text-sm">
-                  {/* 画面描述 */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-[#8C7A6B] font-semibold text-xs uppercase tracking-wider">
-                      <Video size={14} /> 画面 Visual
-                    </div>
-                    {editingId === shot.id ? (
-                      <textarea 
-                        value={shot.visual}
-                        onChange={(e) => handleFieldChange(shot.id, 'visual', e.target.value)}
-                        className="w-full text-sm p-2 bg-[#F9F8F6] border border-[#D4C3B3] rounded-md focus:outline-none focus:border-[#8C7A6B] min-h-[80px]"
-                      />
-                    ) : (
-                      <p className="text-[#3D3835] leading-relaxed">{shot.visual}</p>
-                    )}
-                  </div>
-
-                  {/* 字幕 */}
-                  { (shot.subtitle || editingId === shot.id) && (
-                    <div className="space-y-1.5 border-t border-dashed border-[#E8E4DF] pt-3">
-                      <div className="flex items-center gap-1.5 text-[#8C7A6B] font-semibold text-xs uppercase tracking-wider">
-                        <AlignLeft size={14} /> 核心字幕 Subtitle
-                      </div>
-                      {editingId === shot.id ? (
-                        <input 
-                          type="text"
-                          value={shot.subtitle}
-                          onChange={(e) => handleFieldChange(shot.id, 'subtitle', e.target.value)}
-                          className="w-full text-sm p-2 bg-[#F9F8F6] border border-[#D4C3B3] rounded-md focus:outline-none focus:border-[#8C7A6B]"
-                          placeholder="留空则无字幕"
-                        />
-                      ) : (
-                        shot.subtitle && (
-                          <div className="bg-[#3D3835] text-[#F9F8F6] px-3 py-2 rounded-md font-medium tracking-wide text-center">
-                            {shot.subtitle.split('\n').map((line, i) => <div key={i}>{line}</div>)}
-                          </div>
-                        )
-                      )}
-                    </div>
-                  )}
-
-                  {/* 旁白 */}
-                  { (shot.vo || editingId === shot.id) && (
-                    <div className="space-y-1.5 border-t border-dashed border-[#E8E4DF] pt-3">
-                      <div className="flex items-center gap-1.5 text-[#8C7A6B] font-semibold text-xs uppercase tracking-wider">
-                        <Mic size={14} /> 旁白 Voiceover
-                      </div>
-                      {editingId === shot.id ? (
-                        <textarea 
-                          value={shot.vo}
-                          onChange={(e) => handleFieldChange(shot.id, 'vo', e.target.value)}
-                          className="w-full text-sm p-2 bg-[#F9F8F6] border border-[#D4C3B3] rounded-md focus:outline-none focus:border-[#8C7A6B] min-h-[60px]"
-                          placeholder="留空则无旁白"
-                        />
-                      ) : (
-                        shot.vo && (
-                          <p className="text-[#5C544D] italic relative pl-4 before:content-[''] before:absolute before:left-0 before:top-1 before:bottom-1 before:w-1 before:bg-[#D4C3B3] before:rounded-full">
-                            "{shot.vo}"
-                          </p>
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
-
-              </div>
             </div>
-          ))}
         </div>
-      </main>
 
-      {/* 导入弹窗 */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-[#E8E4DF] flex justify-between items-center bg-[#FAFAF9]">
-              <h3 className="font-bold text-lg text-[#3D3835] flex items-center gap-2">
-                <Import size={20} className="text-[#8C7A6B]"/> 批量导入脚本 (JSON 格式)
-              </h3>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-[#8C837A] hover:text-[#3D3835] p-1 rounded-md hover:bg-[#E8E4DF] transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6">
-              <p className="text-sm text-[#5C544D] mb-4">请将导出的 JSON 数组格式脚本粘贴在此处，结构须包含 id, time, scene, visual, subtitle, vo 等字段。</p>
-              <textarea 
-                value={importText}
-                onChange={(e) => setImportText(e.target.value)}
-                placeholder="[{ 'id': 'shot-1', 'time': '0-5s', ... }]"
-                className="w-full h-64 p-4 font-mono text-sm bg-[#F9F8F6] border border-[#D4C3B3] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8C7A6B]/50 resize-none text-[#5C544D]"
-              />
-            </div>
-            <div className="px-6 py-4 border-t border-[#E8E4DF] bg-[#FAFAF9] flex justify-end gap-3">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-sm text-[#5C544D] hover:bg-[#E8E4DF] rounded-md transition-colors font-medium"
-              >
-                取消
-              </button>
-              <button 
-                onClick={handleImport}
-                className="px-4 py-2 text-sm bg-[#3D3835] text-white hover:bg-[#2A2624] rounded-md transition-colors font-medium shadow-md flex items-center gap-2"
-              >
-                <Save size={16} /> 确认覆盖导入
-              </button>
-            </div>
-          </div>
+        <!-- Loading -->
+        <div class="loader-container" id="loader">
+            <div class="spinner"></div>
+            <p style="font-size:12px; margin-top:8px; color:rgba(255,255,255,0.8); text-align:center;">Loading...</p>
         </div>
-      )}
+
+        <!-- 全景图容器 -->
+        <div id="panorama"></div>
+
+        <!-- 底部控制栏 -->
+        <div id="hud-controls">
+            <button class="hud-btn" id="btn-gallery" title="切换场景">
+                <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM10 9h8v2h-8zm0 3h4v2h-4zm0-6h8v2h-8z"/></svg>
+            </button>
+            <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:auto 0;"></div>
+            <button class="hud-btn" id="btn-auto" title="自动巡航">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="hud-btn" id="btn-gyro" title="开启体感">
+                <svg viewBox="0 0 24 24"><path d="M7 3h10c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm0 2v14h10V5H7zm2 6h6v2H9v-2z"/></svg>
+            </button>
+            <div style="width:1px; height:24px; background:rgba(255,255,255,0.1); margin:auto 0;"></div>
+            <button class="hud-btn" id="btn-fullscreen" title="全屏">
+                <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+        </div>
+
+        <!-- 场景选择面板 -->
+        <div id="gallery-panel">
+            <div class="gallery-header">场景列表</div>
+            <div class="gallery-list" id="gallery-list-container"></div>
+        </div>
 
     </div>
-  );
-}
+
+    <!-- 顶部通知 -->
+    <div id="toast-msg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+        <span id="toast-text">欢迎进入</span>
+    </div>
+
+    <script>
+        const SCENE_LIST = [
+            { id: 0, name: "东港", url: "https://cllli.oss-cn-beijing.aliyuncs.com/img/panoramic/P1.jpg", thumb: "https://cllli.oss-cn-beijing.aliyuncs.com/img/panoramic/P1-1.jpg" },
+            { id: 0, name: "东港概念", url: "https://cllli.oss-cn-beijing.aliyuncs.com/img/panoramic/P4.jpg", thumb: "https://cllli.oss-cn-beijing.aliyuncs.com/img/panoramic/P4-4.jpg" },
+            { id: 0, name: "冰峪沟", url: "https://cllli.oss-cn-beijing.aliyuncs.com/img/panoramic/P3.jpg", thumb: "https://cllli.oss-cn-beijing.aliyuncs.com/img/panoramic/P3-3.jpg" },
+            { id: 0, name: "中山广场", url: "https://cllli.oss-cn-beijing.aliyuncs.com/img/panoramic/P2.jpg", thumb: "https://cllli.oss-cn-beijing.aliyuncs.com/img/panoramic/P2-2.jpg" },
+            { id: 1, name: "测试", url: "https://pannellum.org/images/alma.jpg", thumb: "https://pannellum.org/images/alma.jpg" },
+        ];
+
+        let currentSceneId = 0;
+        let viewer;
+        let isAutoRotating = false;
+        let isGyroEnabled = false;
+        let idleTimer;
+        let loadingStartTime = 0; 
+
+        // --- iOS PWA 强制检测 ---
+        function checkIOSStandalone() {
+            // 简单的 iOS 设备检测
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            
+            // 检测是否已经是 PWA Standalone 模式
+            const isStandalone = window.navigator.standalone || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+            
+            if (isIOS && !isStandalone) {
+                // 如果是 iOS 且不是 PWA，显示强制引导遮罩
+                document.getElementById('ios-install-modal').classList.add('show');
+                return false; // 阻止后续初始化
+            }
+            return true;
+        }
+
+        // 立即执行检测
+        // 注意：在开发环境（非iOS设备）下不会触发，需用真机或模拟器测试
+        const canProceed = checkIOSStandalone();
+
+        const startBtn = document.getElementById('startBtn');
+        const landingPage = document.getElementById('landing-page');
+        const landingBg = document.getElementById('landing-bg');
+        const landingGallery = document.getElementById('landing-gallery'); 
+        const loader = document.getElementById('loader');
+        const hudControls = document.getElementById('hud-controls');
+        const galleryPanel = document.getElementById('gallery-panel');
+        const galleryListContainer = document.getElementById('gallery-list-container');
+        const toast = document.getElementById('toast-msg');
+        const toastText = document.getElementById('toast-text');
+        const btnGyro = document.getElementById('btn-gyro');
+        const btnAuto = document.getElementById('btn-auto');
+        const btnFullscreen = document.getElementById('btn-fullscreen');
+
+        function loadLandingBackground() {
+            const bgUrl = SCENE_LIST[0].thumb;
+            landingBg.style.backgroundImage = `url('${bgUrl}')`;
+            
+            // 预加载首图
+            const img = new Image();
+            img.src = SCENE_LIST[0].url;
+        }
+        if(canProceed) loadLandingBackground();
+
+        function renderLandingGallery() {
+            landingGallery.innerHTML = '';
+            SCENE_LIST.forEach((scene, index) => {
+                const item = document.createElement('div');
+                item.className = `thumb-item ${index === currentSceneId ? 'active' : ''}`;
+                item.onclick = () => {
+                    currentSceneId = index;
+                    renderLandingGallery();
+                    landingBg.style.opacity = 0;
+                    setTimeout(() => {
+                         landingBg.style.backgroundImage = `url('${SCENE_LIST[index].thumb}')`;
+                         landingBg.style.opacity = 1;
+                    }, 200);
+                };
+                item.innerHTML = `<img src="${scene.thumb}" alt="${scene.name}">`;
+                landingGallery.appendChild(item);
+            });
+        }
+        if(canProceed) renderLandingGallery();
+
+        function renderHUDGallery() {
+            galleryListContainer.innerHTML = '';
+            SCENE_LIST.forEach((scene, index) => {
+                const item = document.createElement('div');
+                item.className = `scene-item ${index === currentSceneId ? 'active' : ''}`;
+                item.onclick = () => switchSceneInVR(index);
+                item.innerHTML = `<div class="scene-dot"></div><div class="scene-name">${scene.name}</div>`;
+                galleryListContainer.appendChild(item);
+            });
+        }
+
+        function switchSceneInVR(index) {
+            if (index === currentSceneId && galleryPanel.classList.contains('open')) {
+                toggleGalleryPanel();
+                return;
+            }
+            currentSceneId = index;
+            toggleGalleryPanel(); 
+            renderHUDGallery(); 
+            
+            loadingStartTime = Date.now();
+            loader.style.display = 'block';
+            document.getElementById('panorama').style.opacity = '0.5';
+            
+            initPannellum(isGyroEnabled);
+        }
+
+        startBtn.addEventListener('click', async () => {
+            // 二次检测，防止绕过
+            if (!checkIOSStandalone()) return;
+
+            await toggleFullscreen(true);
+
+            startBtn.style.opacity = '0';
+            landingGallery.parentElement.style.opacity = '0'; 
+            document.querySelector('.subtitle').style.opacity = '0';
+            document.querySelector('h1').innerText = "VR 环境载入中...";
+            
+            loadingStartTime = Date.now();
+            loader.style.display = 'block';
+
+            if (typeof pannellum === 'undefined') {
+                await new Promise(r => setTimeout(r, 1000)); 
+            }
+
+            let permissionGranted = false;
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const state = await DeviceOrientationEvent.requestPermission();
+                    if (state === 'granted') permissionGranted = true;
+                } catch (e) { console.log(e); }
+            } else {
+                permissionGranted = true;
+            }
+
+            setTimeout(() => initPannellum(permissionGranted), 500);
+        });
+
+        // 获取当前建议的 HFOV（视场角）
+        // 竖屏时减小视场角，避免画面畸变
+        function getOptimalHfov() {
+            const isPortrait = window.innerHeight > window.innerWidth;
+            return isPortrait ? 60 : 100;
+        }
+
+        function initPannellum(enableGyroInit) {
+            const scene = SCENE_LIST[currentSceneId];
+            if (viewer) { try { viewer.destroy(); } catch(e) {} }
+
+            viewer = pannellum.viewer('panorama', {
+                "type": "equirectangular",
+                "panorama": scene.url,
+                "autoLoad": true,
+                "compass": false,
+                "showZoomCtrl": false,
+                "mouseZoom": false,
+                "showControls": false,
+                "hfov": getOptimalHfov(), // 使用动态计算的视场角
+                "autoRotate": -2,
+                "autoRotateInactivityDelay": 3000,
+                "crossOrigin": "anonymous"
+            });
+
+            viewer.on('error', () => {
+                showToast("加载失败", "error");
+                loader.style.display = 'none';
+                if(landingPage.style.display !== 'none') {
+                    startBtn.style.opacity = '1';
+                    landingGallery.parentElement.style.opacity = '1';
+                    document.querySelector('h1').innerText = "加载失败，请重试";
+                }
+            });
+
+            viewer.on('load', () => {
+                const minLoadTime = 1500; 
+                const elapsed = Date.now() - loadingStartTime;
+                const remainingTime = Math.max(0, minLoadTime - elapsed);
+
+                setTimeout(() => {
+                    landingPage.style.opacity = '0';
+                    setTimeout(() => landingPage.style.display = 'none', 600);
+                    document.getElementById('panorama').style.opacity = '1';
+                    loader.style.display = 'none';
+                    hudControls.style.transform = 'translateX(-50%) translateY(0)';
+                    
+                    isAutoRotating = true;
+                    updateAutoBtnIcon();
+
+                    if (enableGyroInit || isGyroEnabled) toggleGyro(true);
+                    
+                    showToast(`已进入: ${scene.name}`);
+                    renderHUDGallery();
+                    resetIdleTimer();
+                }, remainingTime);
+            });
+            
+            ['mousedown', 'touchstart'].forEach(e => viewer.on(e, () => {
+                isAutoRotating = false; 
+                updateAutoBtnIcon(); 
+                resetIdleTimer();
+            }));
+        }
+
+        function toggleGalleryPanel() {
+            galleryPanel.classList.toggle('open');
+            document.getElementById('btn-gallery').classList.toggle('active');
+            resetIdleTimer();
+        }
+        document.getElementById('btn-gallery').addEventListener('click', (e) => { e.stopPropagation(); toggleGalleryPanel(); });
+        
+        document.addEventListener('click', (e) => {
+            if (galleryPanel.classList.contains('open') && !galleryPanel.contains(e.target) && !document.getElementById('btn-gallery').contains(e.target)) {
+                toggleGalleryPanel();
+            }
+            resetIdleTimer();
+        });
+
+        function showToast(text, type = "info") {
+            toastText.innerText = text;
+            toast.className = type === 'error' ? 'error' : '';
+            toast.style.border = type === 'error' ? '1px solid var(--error-color)' : '1px solid rgba(255,255,255,0.2)';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function toggleGyro(forceState) {
+            if (!viewer) return;
+            const newState = forceState !== undefined ? forceState : !isGyroEnabled;
+            if (newState) {
+                try { viewer.startOrientation(); isGyroEnabled = true; btnGyro.classList.add('active'); if(!forceState) showToast("体感模式: 开"); } catch(e) {}
+            } else {
+                viewer.stopOrientation(); isGyroEnabled = false; btnGyro.classList.remove('active'); if(!forceState) showToast("体感模式: 关");
+            }
+            resetIdleTimer();
+        }
+        btnGyro.addEventListener('click', () => toggleGyro());
+
+        function toggleAutoRotate() {
+            if (!viewer) return;
+            if (isAutoRotating) { viewer.stopAutoRotate(); isAutoRotating = false; } 
+            else { viewer.startAutoRotate(-2); isAutoRotating = true; }
+            updateAutoBtnIcon();
+            resetIdleTimer();
+        }
+        btnAuto.addEventListener('click', toggleAutoRotate);
+
+        function updateAutoBtnIcon() {
+            const path = isAutoRotating ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z"; 
+            btnAuto.querySelector('path').setAttribute('d', path);
+            btnAuto.classList.toggle('active', isAutoRotating);
+        }
+
+        async function toggleFullscreen(forceEnter = false) {
+            const docEl = document.documentElement;
+            // 检测 iOS 设备
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            
+            // 如果不在全屏模式，或者强制进入
+            if ((!document.fullscreenElement && !document.webkitFullscreenElement) || forceEnter) {
+                try { 
+                    if (docEl.requestFullscreen) {
+                        await docEl.requestFullscreen(); 
+                    } else if (docEl.webkitRequestFullscreen) {
+                        await docEl.webkitRequestFullscreen(); 
+                    } else if (isIOS) {
+                        // iPhone 无法通过 JS 强制全屏 (Safari 限制)
+                        window.scrollTo(0, 1);
+                    }
+
+                    if (forceEnter && screen.orientation && screen.orientation.lock) {
+                        try {
+                            await screen.orientation.lock('landscape');
+                        } catch (err) {
+                            console.log("Auto landscape lock failed:", err);
+                        }
+                    }
+                } catch(e) { console.log(e); }
+            } else {
+                try { 
+                    if (document.exitFullscreen) await document.exitFullscreen(); 
+                    else if (document.webkitExitFullscreen) await document.webkitExitFullscreen(); 
+                    
+                    if (screen.orientation && screen.orientation.unlock) {
+                        screen.orientation.unlock();
+                    }
+                } catch(e) {}
+            }
+        }
+        btnFullscreen.addEventListener('click', () => toggleFullscreen());
+
+        function resetIdleTimer() {
+            clearTimeout(idleTimer);
+            hudControls.classList.remove('idle');
+            idleTimer = setTimeout(() => {
+                if (!galleryPanel.classList.contains('open')) hudControls.classList.add('idle');
+            }, 3000);
+        }
+        
+        // --- 修复版 Resize 逻辑 ---
+        let resizeTimeout;
+        const handleResize = () => { 
+            // 1. 立即暂停体感，防止旋转过程中的画面乱跳
+            if (viewer && isGyroEnabled) {
+                try { viewer.stopOrientation(); } catch(e) {}
+            }
+
+            // 防抖：等待 UI/地址栏动画结束
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if(viewer) {
+                    // 2. 更新尺寸
+                    viewer.resize();
+                    
+                    // 3. 根据横竖屏修正视场角 (解决画面异常/畸变)
+                    const newHfov = getOptimalHfov();
+                    viewer.setHfov(newHfov);
+
+                    // 4. 重启体感 (关键：给予足够的缓冲时间让浏览器更新 orientation 数据)
+                    if (isGyroEnabled) {
+                         // 临时关闭自动旋转以避免冲突
+                        viewer.stopAutoRotate();
+                        
+                        setTimeout(() => {
+                            try { viewer.startOrientation(); } catch(e) {}
+                        }, 100); 
+                    }
+                }
+                checkOrientation(); 
+            }, 300); // 延迟调整为 300ms，覆盖大部分手机旋转动画时长
+        };
+        
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize); // 显式监听旋转
+
+        let lastStateWasPortrait = false;
+        function checkOrientation() {
+            // 放宽检测标准，仅提示，不强制锁定交互
+            const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+            const overlay = document.getElementById('orientation-overlay');
+
+            if (isPortrait) {
+                if (!lastStateWasPortrait) {
+                    overlay.classList.add('show');
+                    if (window.orientationTimer) clearTimeout(window.orientationTimer);
+                    window.orientationTimer = setTimeout(() => {
+                        overlay.classList.remove('show');
+                    }, 1500);
+                }
+            } else {
+                overlay.classList.remove('show');
+                if (window.orientationTimer) clearTimeout(window.orientationTimer);
+            }
+            
+            lastStateWasPortrait = isPortrait;
+        }
+        
+        checkOrientation();
+
+    </script>
+</body>
+</html>
